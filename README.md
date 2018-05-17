@@ -1,2 +1,2 @@
 # KanaQuizz
-Learn Japanese with a simple quizz game
+Learn Japanese kana with a simple quizz game
