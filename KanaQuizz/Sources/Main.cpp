@@ -4,10 +4,11 @@
 
 std::vector<IScreen *>	all_screens;
 
-int main()
+int main(int argc, char** argv)
 {
 	sf::RenderWindow	window(sf::VideoMode(
-		sf::VideoMode::getDesktopMode().width / 1.25f, sf::VideoMode::getDesktopMode().height / 1.25f),
+		(unsigned int)(sf::VideoMode::getDesktopMode().width / 1.25f),
+		(unsigned int)(sf::VideoMode::getDesktopMode().height / 1.25f)),
 		"KanaQuizz - Challenge your Japanese !",
 		sf::Style::Close);
 
@@ -16,7 +17,7 @@ int main()
 
 	// Run every elements in the stack. If there's no more screen left or a close request is done, break the loop.
 	int status = MENU;
-	while ((status = all_screens[status]->run()) != EXIT && status < all_screens.size());
+	while ((status = all_screens[status]->run()) != EXIT && (size_t)status < all_screens.size());
 
 	// On exit request, delete all screens properly
 	for (auto it : all_screens)

@@ -32,6 +32,7 @@ QuizzEvent::QuizzEvent()
 		this->_countdown_finished = false;
 	else
 		this->_countdown_finished = true;
+	this->_hint_given = 0;
 }
 
 QuizzEvent::~QuizzEvent()
@@ -160,15 +161,17 @@ int		QuizzEvent::update(IScreen& screen, sf::Event& event)
 			// Submit an answer
 			case sf::Keyboard::Return:
 			{
-				const char** r_kana_romaji = Hiragana::toRomaji(qscreen->getRandomKanaID());
+				const std::string* romaji = IKana::toRomaji(qscreen->getSelectedKana(), qscreen->getSelectedKanaType());
 
 				// Check if the input submitted is the same as the romaji
 				// In case of multiple romaji, if one is right then it's correct
+				// The romaji is case sensitive, depending if it's a Hiragana (lower) or a Katakana (upper)
 				for (int i = 0; i < MAX_ROMAJI; i++)
 				{
-					if (r_kana_romaji[i] != NULL)
+					if (!romaji[i].empty())
 					{
-						if (qscreen->getInputText().getString().toAnsiString() == std::string(r_kana_romaji[i]))
+						std::cout << "Answer is '" << romaji[i] << "'" << std::endl;
+						if (qscreen->getInputText().getString().toAnsiString() == romaji[i])
 						{
 							this->updateUIAnswer(qscreen, true);
 							break;
@@ -203,13 +206,15 @@ int		QuizzEvent::update(IScreen& screen, sf::Event& event)
 			break;
 		}
 
-		// After an answer, wait half a second and change kana
+		// After an answer, wait a second and change kana
 		if (this->_has_answered &&
 			this->_quizz_clock.getElapsedTime().asSeconds() - this->_answer_time.asSeconds() >= 1)
 		{
 			qscreen->cleanInput();
 			qscreen->centerTextElements();
 			qscreen->setRandomKana();
+			qscreen->setHintText("");
+			this->_hint_given = 0;
 			this->_has_answered = false;
 		}
 	}
@@ -230,6 +235,7 @@ void	QuizzEvent::draw(IScreen& screen)
 		if ((int)this->_input_bar_clock.getElapsedTime().asSeconds() % 2 == 0)
 			qscreen->draw(qscreen->getInputBar());
 		qscreen->draw(qscreen->getInputText());
+		qscreen->draw(qscreen->getHintText());
 
 		if (this->_has_answered &&
 			this->_quizz_clock.getElapsedTime().asSeconds() - this->_answer_time.asSeconds() <= 1)
@@ -259,7 +265,7 @@ void	IEvent::setToggleableEntities(const std::vector<bool>& toggleable_entities)
 
 
 //METHODS
-int	IEvent::changeScreen(eGamestate gamestate, IScreen* screen)
+int	IEvent::changeScreen(IScreen* screen, eGamestate gamestate)
 {
 	int	index;
 
@@ -283,13 +289,13 @@ int	IEvent::changeScreen(eGamestate gamestate, IScreen* screen)
 			return (it->getIndex());
 		}
 	}
-	index = this->createScreen(gamestate, screen);
+	index = this->createScreen(screen, gamestate);
 	std::cout << "Switching screen to " << IScreen::gamestate_name[(int)gamestate] <<
 		" at index " << index << "." << std::endl << std::endl;
 	return (index);
 }
 
-int	IEvent::createScreen(eGamestate gamestate, IScreen* screen)
+int	IEvent::createScreen(IScreen* screen, eGamestate gamestate)
 {
 	IScreen*	new_screen = NULL;
 
@@ -345,4 +351,22 @@ void	QuizzEvent::updateUIAnswer(QuizzScreen* qscreen, const bool answer)
 	qscreen->setAnswerCountersTexts(*tmp2);
 	delete(tmp);
 	delete(tmp2);
+}
+
+int	QuizzEvent::giveHint(QuizzScreen* qscreen)
+{
+	const eKana kana = qscreen->getSelectedKana();
+	const eKanaType type = qscreen->getSelectedKanaType();
+	const std::string* romaji = IKana::toRomaji(kana, type);
+	std::stringstream hint;
+
+	this->_hint_given++;
+	for (int i = 0; i < this->_hint_given && i < romaji[0].length(); i++)
+		hint << romaji[0][i];
+	for (int i = 1; !romaji[i].empty() && this->_hint_given >= romaji[0].length() && i < MAX_ROMAJI; i++)
+		hint << " (" << romaji[i] << ")";
+	qscreen->setHintText(hint.str());
+	std::cout << "Hint is now '" << hint.str() << "'" << std::endl;
+
+	return (qscreen->getIndex());
 }

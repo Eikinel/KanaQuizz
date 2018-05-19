@@ -1,6 +1,4 @@
 #include "Button.h"
-#include "Collider.h"
-
 
 //CONSTRUCTORS
 Button::Button(const std::string& text, const unsigned int& size, const sf::Font& font,
@@ -71,7 +69,7 @@ void	Button::setEventByType(const std::function<int()> event, const eEventType e
 //METHODS
 bool	Button::isHovered(const sf::Vector2i& mouse_pos)
 {
-	if (this->_text.getGlobalBounds().contains(sf::Vector2f(mouse_pos.x, mouse_pos.y)))
+	if (this->_text.getGlobalBounds().contains(static_cast<sf::Vector2f>(mouse_pos)))
 		return (this->_isHovered = true);
 	return (this->_isHovered = false);
 }
@@ -85,4 +83,5 @@ int		Button::triggerEvent(const eEventType event_type)
 {
 	if (this->_events[event_type] != NULL)
 		return(this->_events[event_type]());
+	return NULL;
 }

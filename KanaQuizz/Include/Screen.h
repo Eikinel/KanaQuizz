@@ -96,7 +96,8 @@ public:
 	virtual ~QuizzScreen();
 
 	//GETTERS
-	virtual const eKana						getRandomKanaID() const;
+	virtual const eKana						getSelectedKana() const;
+	virtual const eKanaType					getSelectedKanaType() const;
 	virtual const sf::Text&					getKanaText() const;
 	virtual const sf::Text&					getInputText() const;
 	virtual const sf::RectangleShape&		getInputBackground() const;
@@ -106,6 +107,7 @@ public:
 	virtual const unsigned int				getAnswerNumberByType(const bool type) const;
 	virtual const std::vector<sf::Text>&	getAnswerCountersTexts() const;
 	virtual const sf::Text&					getCountdownText() const;
+	virtual const sf::Text&					getHintText() const;
 
 	//SETTERS
 	void	setInputUser(const std::string& input);
@@ -113,6 +115,7 @@ public:
 	void	setCorrectionText(const sf::Text& correction_text);
 	void	setAnswerCountersTexts(const std::vector<sf::Text>& answer_ct_texts);
 	void	setCountdownText(const std::string& countdown_text);
+	void	setHintText(const std::string& hint_text);
 
 	//METHODS
 	void	addCharToInput(const sf::Uint32& c_input);
@@ -122,14 +125,19 @@ public:
 	void	addAnswer(const bool answer);
 
 protected:
+	//Quizz elements
 	eKana					_random_kana;
+	eKanaType				_random_kana_type;
 	sf::Text				_kana_text;
 	std::string				_input;
+	std::vector<bool>		_answers_ct;
+
+	//UI
 	sf::Text				_input_text;
 	sf::RectangleShape		_input_background;
 	sf::RectangleShape		_input_bar;
 	sf::Text				_correction_text;
-	std::vector<bool>		_answers;
 	std::vector<sf::Text>	_answer_ct_texts;
 	sf::Text				_coutdown_text;
+	sf::Text				_hint_text;
 };

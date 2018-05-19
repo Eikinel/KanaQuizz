@@ -30,9 +30,6 @@
     <ClInclude Include="Include\Button.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
-    <ClInclude Include="Include\Collider.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
     <ClInclude Include="Include\Kana.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>

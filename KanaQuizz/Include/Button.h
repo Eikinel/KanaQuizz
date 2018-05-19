@@ -2,6 +2,7 @@
 
 # include "Constants.h"
 # include <functional>
+# include <tuple>
 
 enum eGamestate;
 
@@ -48,21 +49,20 @@ public:
 	void	setEventByType(const std::function<int()> event, const eEventType event_type);
 
 	//METHODS
-	template <typename U, typename... T> void onClick(int (U::*func)(int, T...), U* event, int index, T... params)
+	template <typename TEvent, typename TScreen, typename... TArgs>
+	void onClick(int (TEvent::*func)(TScreen*, TArgs...), TEvent* event, TScreen* screen, TArgs... targs)
 	{
-		this->_events[eEventType::CLICK] = std::bind(func, event, index, params...);
+		this->_events[eEventType::CLICK] = std::bind(func, event, screen, targs...);
 	}
-	template <typename U, typename... T> void onClick(int (U::*func)(eGamestate, T...), U* event, eGamestate gamestate, T... params)
+	template <typename TEvent, typename... TArgs>
+	void onHover(int (TEvent::*func)(Button*, TArgs...), TEvent* event, Button* button, TArgs... targs)
 	{
-		this->_events[eEventType::CLICK] = std::bind(func, event, gamestate, params...);
+		this->_events[eEventType::HOVER] = std::bind(func, event, button, targs...);
 	}
-	template <typename U, typename... T> void onHover(int (U::*func)(Button*, T...), U* event, Button* button, T... params)
+	template <typename TEvent, typename... TArgs>
+	void onUnhover(int (TEvent::*func)(Button*, TArgs...), TEvent* event, Button* button, TArgs... targs)
 	{
-		this->_events[eEventType::HOVER] = std::bind(func, event, button, params...);
-	}
-	template <typename U, typename... T> void onUnhover(int (U::*func)(Button*, T...), U* event, Button* button, T... params)
-	{
-		this->_events[eEventType::UNHOVER] = std::bind(func, event, button, params...);
+		this->_events[eEventType::UNHOVER] = std::bind(func, event, button, targs...);
 	}
 
 	bool isHovered(const sf::Vector2i& mouse_pos);

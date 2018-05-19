@@ -3,11 +3,10 @@
 #include "Constants.h"
 
 enum	eGamestate;
-enum	eAccuracy;
+enum	eKana;
+enum	eKanaType;
 class	IScreen;
 class	QuizzScreen;
-class	Note;
-class	Phase;
 class	Button;
 
 enum	eToggleable
@@ -32,8 +31,8 @@ public:
 	virtual	void	setToggleableEntities(const std::vector<bool>& toggleable_entities);
 
 	//METHODS
-	virtual int	changeScreen(eGamestate gamestate, IScreen* screen);
-	virtual int	createScreen(eGamestate gamestate, IScreen* screen);
+	virtual int	changeScreen(IScreen* screen, eGamestate gamestate);
+	virtual int	createScreen(IScreen* screen, eGamestate gamestate);
 	virtual int changeButtonColor(Button* button, const sf::Color color);
 
 protected:
@@ -68,13 +67,14 @@ public:
 	virtual int		update(IScreen& screen, sf::Event& event);
 	virtual void	draw(IScreen& screen);
 
-private:
-	sf::Clock	_quizz_clock;
-	sf::Clock	_input_bar_clock;
-	sf::Time	_answer_time;
-	bool		_has_answered;
-	bool		_countdown_finished;
-	void		updateUIAnswer(QuizzScreen* screen, const bool answer);
-};
+	virtual int		giveHint(QuizzScreen* qscreen);
 
-// NOT COOL, MUST BE INSIDE BUTTON.H
+private:
+	sf::Clock		_quizz_clock;
+	sf::Clock		_input_bar_clock;
+	sf::Time		_answer_time;
+	bool			_has_answered;
+	bool			_countdown_finished;
+	unsigned int	_hint_given;
+	void			updateUIAnswer(QuizzScreen* screen, const bool answer);
+};

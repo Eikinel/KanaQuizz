@@ -29,11 +29,11 @@ IScreen::IScreen(sf::RenderWindow& window, eGamestate state) : _window(window), 
 	color_chart[eColorChart::TEXT_RED] = sf::Color(175, 10, 10);
 	this->_color_chart = color_chart;
 
-	text_sizes[eTextSize::TINY] = win_size.y / 32.f;
-	text_sizes[eTextSize::SMALL] = win_size.y / 18.f;
-	text_sizes[eTextSize::AVERAGE] = win_size.y / 12.f;
-	text_sizes[eTextSize::LARGE] = win_size.y / 8.f;
-	text_sizes[eTextSize::EXTRA_LARGE] = win_size.y / 4.f;
+	text_sizes[eTextSize::TINY] = (unsigned int)(win_size.y / 32.f);
+	text_sizes[eTextSize::SMALL] = (unsigned int)(win_size.y / 18.f);
+	text_sizes[eTextSize::AVERAGE] = (unsigned int)(win_size.y / 12.f);
+	text_sizes[eTextSize::LARGE] = (unsigned int)(win_size.y / 8.f);
+	text_sizes[eTextSize::EXTRA_LARGE] = (unsigned int)(win_size.y / 4.f);
 	this->_text_sizes = text_sizes;
 }
 
@@ -60,9 +60,9 @@ MenuScreen::MenuScreen(sf::RenderWindow& window) : IScreen(window, MENU)
 	this->_buttons.push_back(new Button("Exit", this->_text_sizes[eTextSize::AVERAGE], this->_fancy_font, sf::Vector2f(
 		win_size.x / 2.f,
 		win_size.y / 1.2f), CENTER_X, CENTER_Y));
-	this->_buttons[0]->onClick(&IEvent::changeScreen, this->_events[1], QUIZZ, static_cast<IScreen *>(this));
-	this->_buttons[1]->onClick(&IEvent::changeScreen, this->_events[1], OPTIONS, static_cast<IScreen *>(this));
-	this->_buttons[2]->onClick(&IEvent::changeScreen, this->_events[1], EXIT, static_cast<IScreen *>(this));
+	this->_buttons[0]->onClick(&IEvent::changeScreen, this->_events[1], static_cast<IScreen *>(this), QUIZZ);
+	this->_buttons[1]->onClick(&IEvent::changeScreen, this->_events[1], static_cast<IScreen *>(this), OPTIONS);
+	this->_buttons[2]->onClick(&IEvent::changeScreen, this->_events[1], static_cast<IScreen *>(this), EXIT);
 
 	for (auto it : this->_buttons)
 	{
@@ -90,8 +90,8 @@ QuizzScreen::QuizzScreen(sf::RenderWindow& window) : IScreen(window, QUIZZ)
 	this->_buttons.push_back(new Button("Hint", this->_text_sizes[eTextSize::AVERAGE], this->_fancy_font, sf::Vector2f(
 		win_size.x / 2.f,
 		win_size.y - win_size.y / 24.f), CENTER_X, BOTTOM));
-	this->_buttons[0]->onClick(&IEvent::changeScreen, this->_events[1], MENU, static_cast<IScreen *>(this));
-	//this->_buttons[1]->onClick(&IEvent::giveHint, this->_events[1], static_cast<IScreen *>(this));
+	this->_buttons[0]->onClick(&IEvent::changeScreen, this->_events[1], static_cast<IScreen *>(this), MENU);
+	this->_buttons[1]->onClick(&QuizzEvent::giveHint, static_cast<QuizzEvent *>(this->_events[1]), this);
 
 	for (auto it : this->_buttons)
 	{
@@ -140,8 +140,12 @@ QuizzScreen::QuizzScreen(sf::RenderWindow& window) : IScreen(window, QUIZZ)
 	this->_correction_text.setFont(this->_fancy_font);
 	this->_correction_text.setCharacterSize(this->_text_sizes[eTextSize::SMALL]);
 
+	//Create hint text
+	this->_hint_text.setFont(this->_fancy_font);
+	this->_hint_text.setCharacterSize(this->_text_sizes[eTextSize::SMALL]);
+
 	//Score managing
-	this->_answers = std::vector<bool>();
+	this->_answers_ct = std::vector<bool>();
 	this->_answer_ct_texts = std::vector<sf::Text>(2);
 	for (int i = 0; i < 2; i++)
 	{
@@ -268,9 +272,14 @@ const sf::Sprite&		MenuScreen::getTitleImage() const
 }
 
 
-const eKana		QuizzScreen::getRandomKanaID() const
+const eKana		QuizzScreen::getSelectedKana() const
 {
 	return (this->_random_kana);
+}
+
+const eKanaType		QuizzScreen::getSelectedKanaType() const
+{
+	return (this->_random_kana_type);
 }
 
 const sf::Text&		QuizzScreen::getKanaText() const
@@ -300,14 +309,14 @@ const sf::Text&		QuizzScreen::getCorrectionText() const
 
 const std::vector<bool>&	QuizzScreen::getAnswerCounter() const
 {
-	return (this->_answers);
+	return (this->_answers_ct);
 }
 
 const unsigned int		QuizzScreen::getAnswerNumberByType(const bool type) const
 {
 	unsigned int i = 0;
 
-	for (auto it : this->_answers)
+	for (auto it : this->_answers_ct)
 		if (it == type)
 			i++;
 
@@ -324,6 +333,11 @@ const sf::Text&		QuizzScreen::getCountdownText() const
 	return (this->_coutdown_text);
 }
 
+const sf::Text&		QuizzScreen::getHintText() const
+{
+	return (this->_hint_text);
+}
+
 
 //SETTERS
 void	QuizzScreen::setInputUser(const std::string& input)
@@ -334,8 +348,9 @@ void	QuizzScreen::setInputUser(const std::string& input)
 void	QuizzScreen::setRandomKana()
 {
 	this->_random_kana = (eKana)(std::rand() % eKana::KANA_SIZE);
+	this->_random_kana_type = (eKanaType)(std::rand() % eKanaType::SIZE_KANA_TYPE);
 
-	this->_kana_text.setString(Hiragana::kana(this->_random_kana));
+	this->_kana_text.setString(IKana::kana(this->_random_kana, this->_random_kana_type));
 	this->_kana_text.setOrigin(sf::Vector2f());
 	this->_kana_text.setPosition(sf::Vector2f());
 	this->_kana_text.setOrigin(sf::Vector2f(
@@ -374,6 +389,17 @@ void	QuizzScreen::setCountdownText(const std::string& countdown_text)
 	this->_coutdown_text.setPosition(sf::Vector2f(
 		this->_window.getSize().x / 2.f,
 		this->_window.getSize().y / 2.f - this->_coutdown_text.getGlobalBounds().height / 2.f));
+}
+
+void	QuizzScreen::setHintText(const std::string& hint_text)
+{
+	this->_hint_text.setString(hint_text);
+	this->_hint_text.setOrigin(sf::Vector2f(
+		this->_hint_text.getGlobalBounds().width / 2.f,
+		this->_hint_text.getGlobalBounds().height / 2.f));
+	this->_hint_text.setPosition(sf::Vector2f(
+		this->_input_background.getPosition().x,
+		this->_input_background.getPosition().y + this->_window.getSize().y / 8.f));
 }
 
 
@@ -416,7 +442,8 @@ void	QuizzScreen::centerTextElements()
 
 void	QuizzScreen::addAnswer(const bool answer)
 {
-	this->_answers.push_back(answer);
+	this->_answers_ct.push_back(answer);
 }
 
+// Console debug only
 const char* IScreen::gamestate_name[eGamestate::SIZE_GAMESTATE] = { "Menu", "Options", "Quizz" };

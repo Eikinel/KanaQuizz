@@ -23,19 +23,33 @@ enum	eKana
 	KANA_SIZE
 };
 
+enum	eKanaType
+{
+	HIRAGANA,
+	KATAKANA,
+	SIZE_KANA_TYPE
+};
+
 class	IKana
 {
 public:
 	//GETTERS
-	//Probably needs a change
-	static const wchar_t&	kana(const eKana kana);
-	static const wchar_t*	allKana();
-	static const char**		toRomaji(const eKana kana);
+	static const wchar_t&		kana(const eKana kana, const eKanaType type);
+	static const wchar_t*		allKanaByType(const eKanaType type);
+	static const std::string*	toRomaji(const eKana kana, const eKanaType type);
+	static const std::string*	toRomajiUppercase(const std::string romaji[MAX_ROMAJI]);
 
-	static const wchar_t	_kana[eKana::KANA_SIZE];
-	static const char*		_romaji[eKana::KANA_SIZE][MAX_ROMAJI];
+	static const std::string	_romaji[eKana::KANA_SIZE][MAX_ROMAJI];
 };
 
 class	Hiragana : public IKana
 {
+public:
+	static const wchar_t	_hiragana[eKana::KANA_SIZE];
+};
+
+class	Katakana : public IKana
+{
+public:
+	static const wchar_t	_katakana[eKana::KANA_SIZE];
 };
