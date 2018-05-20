@@ -97,30 +97,29 @@ const wchar_t*	IKana::allKanaByType(const eKanaType type)
 const std::string*	IKana::toRomaji(const eKana kana, const eKanaType type)
 {
 	return (_romaji[kana]);
-	/*switch (type)
+	switch (type)
 	{
 	case eKanaType::HIRAGANA:
 		return (_romaji[kana]);
 		break;
 	case eKanaType::KATAKANA:
-		return (toRomajiUppercase(_romaji[kana]));
+		return (IKana::toRomajiUppercase(_romaji[kana]));
 		break;
 	default:
 		break;
-	}*/
+	}
 }
 
 const std::string*	IKana::toRomajiUppercase(const std::string romaji[MAX_ROMAJI])
 {
-	return NULL;
-	/*std::string romaji_uppercase[MAX_ROMAJI];
+	std::string romaji_uppercase[MAX_ROMAJI];
 
 	for (int i = 0; i < MAX_ROMAJI; i++)
 	{
 		std::cout << "Uppercasing romaji '" << romaji[i] << "'" << std::endl;
-		std::transform(strString.begin(), strString.end(), strString.begin(), toupper);
+		std::transform(romaji[i].begin(), romaji[i].end(), romaji_uppercase[i].begin(), std::toupper);
 		std::cout << "Romaji '" << romaji[i] << "' uppercase is now '" << romaji_uppercase[i] << "'" << std::endl;
 	}
 
-	return (romaji_uppercase);*/
+	return (romaji_uppercase);
 }

@@ -33,6 +33,7 @@ QuizzEvent::QuizzEvent()
 	else
 		this->_countdown_finished = true;
 	this->_hint_given = 0;
+	this->_score = SCORE_POINT;
 }
 
 QuizzEvent::~QuizzEvent()
@@ -161,29 +162,33 @@ int		QuizzEvent::update(IScreen& screen, sf::Event& event)
 			// Submit an answer
 			case sf::Keyboard::Return:
 			{
-				const std::string* romaji = IKana::toRomaji(qscreen->getSelectedKana(), qscreen->getSelectedKanaType());
-
-				// Check if the input submitted is the same as the romaji
-				// In case of multiple romaji, if one is right then it's correct
-				// The romaji is case sensitive, depending if it's a Hiragana (lower) or a Katakana (upper)
-				for (int i = 0; i < MAX_ROMAJI; i++)
+				if (!this->_has_answered)
 				{
-					if (!romaji[i].empty())
-					{
-						std::cout << "Answer is '" << romaji[i] << "'" << std::endl;
-						if (qscreen->getInputText().getString().toAnsiString() == romaji[i])
-						{
-							this->updateUIAnswer(qscreen, true);
-							break;
-						}
-						else
-							this->updateUIAnswer(qscreen, false);
-					}
-				}
+					const std::string* romaji = IKana::toRomaji(qscreen->getSelectedKana(), qscreen->getSelectedKanaType());
+					bool answer = false;
 
-				this->_has_answered = true;
-				this->_answer_time = this->_quizz_clock.getElapsedTime();
-				break;
+					// Check if the input submitted is the same as the romaji
+					// In case of multiple romaji, if one is right then it's correct
+					// The romaji is case sensitive, depending if it's a Hiragana (lower) or a Katakana (upper)
+					for (int i = 0; i < MAX_ROMAJI; i++)
+					{
+						if (!romaji[i].empty())
+						{
+							std::cout << "Answer is '" << romaji[i] << "'" << std::endl;
+							if (qscreen->getInputText().getString().toAnsiString() == romaji[i])
+							{
+								answer = true;
+								break;
+							}
+						}
+					}
+
+					qscreen->addScoreToTotal(answer * this->_score);
+					qscreen->updateUIWithAnswer(answer, answer * this->_score);
+					this->_has_answered = true;
+					this->_answer_time = this->_quizz_clock.getElapsedTime();
+					break;
+				}
 			}
 			default:
 				break;
@@ -215,6 +220,7 @@ int		QuizzEvent::update(IScreen& screen, sf::Event& event)
 			qscreen->setRandomKana();
 			qscreen->setHintText("");
 			this->_hint_given = 0;
+			this->_score = SCORE_POINT;
 			this->_has_answered = false;
 		}
 	}
@@ -241,9 +247,11 @@ void	QuizzEvent::draw(IScreen& screen)
 			this->_quizz_clock.getElapsedTime().asSeconds() - this->_answer_time.asSeconds() <= 1)
 		{
 			qscreen->draw(qscreen->getCorrectionText());
+			qscreen->draw(qscreen->getScoreTextByID(eScoreUI::SCORE_ADD_UI));
 		}
-		for (int i = 0; i < 2; i++)
-			qscreen->draw(qscreen->getAnswerCountersTexts()[i]);
+		for (int i = 0; i < qscreen->getScoreTexts().size(); i++)
+			if (i != eScoreUI::SCORE_ADD_UI)
+				qscreen->draw(qscreen->getScoreTextByID(i));
 		for (auto it : qscreen->getButtons())
 			qscreen->draw(it->getText());
 	}
@@ -324,35 +332,6 @@ int		IEvent::changeButtonColor(Button* button, const sf::Color color)
 	return 0;
 }
 
-void	QuizzEvent::updateUIAnswer(QuizzScreen* qscreen, const bool answer)
-{
-	sf::Text* tmp = new sf::Text(qscreen->getCorrectionText());
-	std::vector<sf::Text>* tmp2 = new std::vector<sf::Text>(qscreen->getAnswerCountersTexts());
-	std::stringstream ss;
-
-	if (answer)
-	{
-		qscreen->addAnswer(true);
-		tmp->setFillColor(qscreen->getColorChart()[eColorChart::TEXT_GREEN]);
-		tmp->setString(RIGHT_ANSWER);
-	}
-	else
-	{
-		qscreen->addAnswer(false);
-		tmp->setFillColor(qscreen->getColorChart()[eColorChart::TEXT_RED]);
-		tmp->setString(WRONG_ANSWER);
-	}
-	ss << RIGHT_COUNTER << qscreen->getAnswerNumberByType(true);
-	(*tmp2)[0].setString(ss.str());
-	ss.str("");
-	ss << WRONG_COUNTER << qscreen->getAnswerNumberByType(false);
-	(*tmp2)[1].setString(ss.str());
-	qscreen->setCorrectionText(*tmp);
-	qscreen->setAnswerCountersTexts(*tmp2);
-	delete(tmp);
-	delete(tmp2);
-}
-
 int	QuizzEvent::giveHint(QuizzScreen* qscreen)
 {
 	const eKana kana = qscreen->getSelectedKana();
@@ -361,6 +340,8 @@ int	QuizzEvent::giveHint(QuizzScreen* qscreen)
 	std::stringstream hint;
 
 	this->_hint_given++;
+	if (this->_score >= SCORE_PENALTY)
+		this->_score -= SCORE_PENALTY;
 	for (int i = 0; i < this->_hint_given && i < romaji[0].length(); i++)
 		hint << romaji[0][i];
 	for (int i = 1; !romaji[i].empty() && this->_hint_given >= romaji[0].length() && i < MAX_ROMAJI; i++)

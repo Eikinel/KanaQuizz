@@ -13,7 +13,7 @@ int main(int argc, char** argv)
 		sf::Style::Close);
 
 	// Pushing screens to the stack
-	all_screens.push_back(new QuizzScreen(window));
+	all_screens.push_back(new MenuScreen(window));
 
 	// Run every elements in the stack. If there's no more screen left or a close request is done, break the loop.
 	int status = MENU;

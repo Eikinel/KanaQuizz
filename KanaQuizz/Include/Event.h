@@ -70,11 +70,11 @@ public:
 	virtual int		giveHint(QuizzScreen* qscreen);
 
 private:
-	sf::Clock		_quizz_clock;
-	sf::Clock		_input_bar_clock;
-	sf::Time		_answer_time;
-	bool			_has_answered;
-	bool			_countdown_finished;
-	unsigned int	_hint_given;
-	void			updateUIAnswer(QuizzScreen* screen, const bool answer);
+	sf::Clock			_quizz_clock;
+	sf::Clock			_input_bar_clock;
+	sf::Time			_answer_time;
+	bool				_has_answered;
+	bool				_countdown_finished;
+	unsigned long long	_score;
+	unsigned int		_hint_given;
 };

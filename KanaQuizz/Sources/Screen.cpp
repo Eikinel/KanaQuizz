@@ -145,24 +145,22 @@ QuizzScreen::QuizzScreen(sf::RenderWindow& window) : IScreen(window, QUIZZ)
 	this->_hint_text.setCharacterSize(this->_text_sizes[eTextSize::SMALL]);
 
 	//Score managing
+	this->_score_strings = { WRONG_COUNTER, RIGHT_COUNTER, TOTAL_SCORE_COUNTER, ADD_SCORE_COUNTER };
 	this->_answers_ct = std::vector<bool>();
-	this->_answer_ct_texts = std::vector<sf::Text>(2);
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < this->_score_strings.size(); i++)
 	{
-		this->_answer_ct_texts[i].setFont(this->_fancy_font);
-		this->_answer_ct_texts[i].setCharacterSize(this->_text_sizes[eTextSize::TINY]);
-		this->_answer_ct_texts[i].setFillColor(this->_color_chart[eColorChart::TEXT_NORMAL]);
-		this->_answer_ct_texts[i].setPosition(sf::Vector2f(
+		std::stringstream ss;
+
+		this->_score_texts.push_back(sf::Text());
+		this->_score_texts[i].setFont(this->_fancy_font);
+		this->_score_texts[i].setCharacterSize(this->_text_sizes[eTextSize::TINY]);
+		this->_score_texts[i].setFillColor(this->_color_chart[eColorChart::TEXT_NORMAL]);
+		this->_score_texts[i].setPosition(sf::Vector2f(
 			win_size.x / 48.f,
 			i * this->_text_sizes[eTextSize::TINY] * 2 + win_size.y / 24.f));
+		ss << this->_score_strings[i] << "0";
+		this->_score_texts[i].setString(ss.str());
 	}
-	std::stringstream ss;
-
-	ss << RIGHT_COUNTER << "0";
-	this->_answer_ct_texts[0].setString(ss.str());
-	ss.str("");
-	ss << WRONG_COUNTER << "0";
-	this->_answer_ct_texts[1].setString(ss.str());
 }
 
 IScreen::~IScreen()
@@ -250,7 +248,7 @@ const unsigned int		IScreen::getIndex() const
 	return (this->_index);
 }
 
-const std::vector<sf::Color>	IScreen::getColorChart() const
+const std::vector<sf::Color>&	IScreen::getColorChart() const
 {
 	return (this->_color_chart);
 }
@@ -312,7 +310,7 @@ const std::vector<bool>&	QuizzScreen::getAnswerCounter() const
 	return (this->_answers_ct);
 }
 
-const unsigned int		QuizzScreen::getAnswerNumberByType(const bool type) const
+const unsigned int		QuizzScreen::getAnswerCounterByType(const bool type) const
 {
 	unsigned int i = 0;
 
@@ -323,9 +321,28 @@ const unsigned int		QuizzScreen::getAnswerNumberByType(const bool type) const
 	return (i);
 }
 
-const std::vector<sf::Text>& 	QuizzScreen::getAnswerCountersTexts() const
+const unsigned long long	QuizzScreen::getScore() const
 {
-	return (this->_answer_ct_texts);
+	return (this->_total_score);
+}
+
+const std::vector<sf::Text>& 	QuizzScreen::getScoreTexts() const
+{
+	return (this->_score_texts);
+}
+
+const sf::Text&		QuizzScreen::getScoreTextByID(const size_t id) const
+{
+	if (id < this->_score_texts.size())
+		return (this->_score_texts[id]);
+
+	std::cerr << "Can't return score text with id " << id <<
+		" : the vector has a size of " << this->_score_texts.size() << "." << std::endl;
+}
+
+const std::vector<std::string>&	QuizzScreen::getScoreStrings() const
+{
+	return (this->_score_strings);
 }
 
 const sf::Text&		QuizzScreen::getCountdownText() const
@@ -350,6 +367,7 @@ void	QuizzScreen::setRandomKana()
 	this->_random_kana = (eKana)(std::rand() % eKana::KANA_SIZE);
 	this->_random_kana_type = (eKanaType)(std::rand() % eKanaType::SIZE_KANA_TYPE);
 
+	std::cout << "Displaying kana '" << IKana::toRomaji(this->_random_kana, this->_random_kana_type)[0] << "'" << std::endl;
 	this->_kana_text.setString(IKana::kana(this->_random_kana, this->_random_kana_type));
 	this->_kana_text.setOrigin(sf::Vector2f());
 	this->_kana_text.setPosition(sf::Vector2f());
@@ -364,20 +382,25 @@ void	QuizzScreen::setRandomKana()
 void	QuizzScreen::setCorrectionText(const sf::Text& correction_text)
 {
 	this->_correction_text = correction_text;
-	
-	this->_correction_text.setOrigin(sf::Vector2f());
-	this->_correction_text.setPosition(sf::Vector2f());
-	this->_correction_text.setOrigin(sf::Vector2f(
-		this->_correction_text.getGlobalBounds().left + this->_correction_text.getGlobalBounds().width / 2.f,
-		this->_correction_text.getGlobalBounds().top + this->_correction_text.getGlobalBounds().height / 2.f));
-	this->_correction_text.setPosition(sf::Vector2f(
-		this->_window.getSize().x / 2.f,
-		this->_window.getSize().y / 2.1f));
 }
 
-void	QuizzScreen::setAnswerCountersTexts(const std::vector<sf::Text>& answer_ct_texts)
+void	QuizzScreen::setScoreTexts(const std::vector<std::string>& score_texts)
 {
-	this->_answer_ct_texts = answer_ct_texts;
+	for (size_t i = 0; i < score_texts.size(); i++)
+		this->setScoreTextByID(score_texts[i], i);
+}
+
+void	QuizzScreen::setScore(const unsigned long long score)
+{
+	this->_total_score = score;
+}
+
+void	QuizzScreen::setScoreTextByID(const std::string& score_text, const size_t id)
+{
+	if (id <= this->_score_texts.size())
+		this->_score_texts[id].setString(score_text);
+	std::cerr << "Can't change score text '" << score_text << "' with id " << id <<
+		" : the vector has a size of " << this->_score_texts.size() << "." << std::endl;
 }
 
 void	QuizzScreen::setCountdownText(const std::string& countdown_text)
@@ -443,6 +466,55 @@ void	QuizzScreen::centerTextElements()
 void	QuizzScreen::addAnswer(const bool answer)
 {
 	this->_answers_ct.push_back(answer);
+}
+
+void	QuizzScreen::addScoreToTotal(const unsigned long long score)
+{
+	this->_total_score += score;
+}
+
+void	QuizzScreen::updateUIWithAnswer(const bool answer, unsigned long long score)
+{
+	std::stringstream ss;
+
+	if (answer)
+	{
+		this->addAnswer(true);
+		this->_correction_text.setFillColor(this->_color_chart[eColorChart::TEXT_GREEN]);
+		this->_correction_text.setString(RIGHT_ANSWER);
+	}
+	else
+	{
+		this->addAnswer(false);
+		this->_correction_text.setFillColor(this->_color_chart[eColorChart::TEXT_RED]);
+		this->_correction_text.setString(WRONG_ANSWER);
+	}
+	
+	this->_correction_text.setOrigin(sf::Vector2f());
+	this->_correction_text.setPosition(sf::Vector2f());
+	this->_correction_text.setOrigin(sf::Vector2f(
+		this->_correction_text.getGlobalBounds().left + this->_correction_text.getGlobalBounds().width / 2.f,
+		this->_correction_text.getGlobalBounds().top + this->_correction_text.getGlobalBounds().height / 2.f));
+	this->_correction_text.setPosition(sf::Vector2f(
+		this->_window.getSize().x / 2.f,
+		this->_window.getSize().y / 2.1f));
+
+	for (int i = eScoreUI::BAD_ANSWER_UI; i <= eScoreUI::GOOD_ANSWER_UI; i++)
+	{
+		ss << this->_score_strings[i] << this->getAnswerCounterByType((eScoreUI)i);
+		this->_score_texts[i].setString(ss.str());
+		ss.str("");
+	}
+	ss << this->_score_strings[eScoreUI::SCORE_TOTAL_UI] << this->_total_score;
+	this->_score_texts[eScoreUI::SCORE_TOTAL_UI].setString(ss.str());
+	ss.str("");
+	sf::Text tmp = this->_score_texts[eScoreUI::SCORE_TOTAL_UI];
+	ss << this->_score_strings[eScoreUI::SCORE_ADD_UI] << score;
+	this->_score_texts[eScoreUI::SCORE_ADD_UI].setString(ss.str());
+	this->_score_texts[eScoreUI::SCORE_ADD_UI].setFillColor(this->_color_chart[eColorChart::TEXT_RED - score / 100]);
+	this->_score_texts[eScoreUI::SCORE_ADD_UI].setPosition(sf::Vector2f(
+		tmp.getPosition().x + tmp.getGlobalBounds().width + this->_window.getSize().x / 96.f,
+		tmp.getPosition().y));
 }
 
 // Console debug only

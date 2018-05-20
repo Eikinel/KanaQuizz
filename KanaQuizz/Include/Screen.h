@@ -37,6 +37,15 @@ enum	eTextSize
 	SIZE_TEXT_SIZE
 };
 
+enum	eScoreUI
+{
+	BAD_ANSWER_UI,
+	GOOD_ANSWER_UI,
+	SCORE_TOTAL_UI,
+	SCORE_ADD_UI,
+	SIZE_SCORE_UI
+};
+
 
 class IScreen
 {
@@ -51,7 +60,7 @@ public:
 	virtual const sf::Font&					getUnicodeFont() const;
 	virtual const sf::Font&					getFancyFont() const;
 	virtual const unsigned int				getIndex() const;
-	virtual const std::vector<sf::Color>	getColorChart() const;
+	virtual const std::vector<sf::Color>&	getColorChart() const;
 	virtual const std::vector<Button *>&	getButtons() const;
 
 	//METHODS
@@ -104,8 +113,11 @@ public:
 	virtual const sf::RectangleShape&		getInputBar() const;
 	virtual const sf::Text&					getCorrectionText() const;
 	virtual const std::vector<bool>&		getAnswerCounter() const;
-	virtual const unsigned int				getAnswerNumberByType(const bool type) const;
-	virtual const std::vector<sf::Text>&	getAnswerCountersTexts() const;
+	virtual const unsigned int				getAnswerCounterByType(const bool type) const;
+	virtual const unsigned long long		getScore() const;
+	virtual const std::vector<sf::Text>&	getScoreTexts() const;
+	virtual const sf::Text&					getScoreTextByID(const size_t id) const;
+	virtual const std::vector<std::string>&	getScoreStrings() const;
 	virtual const sf::Text&					getCountdownText() const;
 	virtual const sf::Text&					getHintText() const;
 
@@ -113,7 +125,9 @@ public:
 	void	setInputUser(const std::string& input);
 	void	setRandomKana();
 	void	setCorrectionText(const sf::Text& correction_text);
-	void	setAnswerCountersTexts(const std::vector<sf::Text>& answer_ct_texts);
+	void	setScore(const unsigned long long score);
+	void	setScoreTexts(const std::vector<std::string>& score_texts);
+	void	setScoreTextByID(const std::string& score_text, const size_t id);
 	void	setCountdownText(const std::string& countdown_text);
 	void	setHintText(const std::string& hint_text);
 
@@ -123,6 +137,8 @@ public:
 	void	cleanInput();
 	void	centerTextElements();
 	void	addAnswer(const bool answer);
+	void	addScoreToTotal(const unsigned long long score);
+	void	updateUIWithAnswer(const bool answer, const unsigned long long score);
 
 protected:
 	//Quizz elements
@@ -133,11 +149,13 @@ protected:
 	std::vector<bool>		_answers_ct;
 
 	//UI
-	sf::Text				_input_text;
-	sf::RectangleShape		_input_background;
-	sf::RectangleShape		_input_bar;
-	sf::Text				_correction_text;
-	std::vector<sf::Text>	_answer_ct_texts;
-	sf::Text				_coutdown_text;
-	sf::Text				_hint_text;
+	sf::Text					_input_text;
+	sf::RectangleShape			_input_background;
+	sf::RectangleShape			_input_bar;
+	sf::Text					_correction_text;
+	sf::Text					_coutdown_text;
+	sf::Text					_hint_text;
+	unsigned long long			_total_score;
+	std::vector<sf::Text>		_score_texts;
+	std::vector<std::string>	_score_strings;
 };
