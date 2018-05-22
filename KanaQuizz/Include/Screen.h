@@ -47,42 +47,60 @@ enum	eScoreUI
 };
 
 
-class IScreen
+class SScreen
+{
+public:
+	//GETTERS
+	static SScreen*						getInstance(sf::RenderWindow& window);
+	const sf::Font&						getUnicodeFont() const;
+	const sf::Font&						getFancyFont() const;
+	const std::vector<sf::Color>&		getColorChart() const;
+	const std::vector<unsigned int>&	getTextSizes() const;
+
+private:
+	SScreen(sf::RenderWindow& window);
+
+	static SScreen*				instance;
+	sf::Font					unicode_font;
+	sf::Font					fancy_font;
+	std::vector<sf::Color>		color_chart;
+	std::vector<unsigned int>	text_sizes;
+};
+
+class Screen
 {
 public: 
-	IScreen(sf::RenderWindow& window, eGamestate state);
-	virtual ~IScreen();
+	Screen(sf::RenderWindow& window, eGamestate state);
+	virtual ~Screen();
 
 	//GETTERS
 	virtual sf::RenderWindow&				getWindow();
 	virtual std::vector<IEvent *>&			getEvents();
 	virtual eGamestate						getState() const;
-	virtual const sf::Font&					getUnicodeFont() const;
-	virtual const sf::Font&					getFancyFont() const;
 	virtual const unsigned int				getIndex() const;
-	virtual const std::vector<sf::Color>&	getColorChart() const;
 	virtual const std::vector<Button *>&	getButtons() const;
+
+	//SETTERS
+	virtual void	setIndex(const unsigned int index);
 
 	//METHODS
 	virtual int		run();
 	virtual void	draw(const sf::Drawable& object, sf::RenderStates states = sf::RenderStates());
 
 	//STATIC VARIABLE FOR CONSOLE DEBUG
+	static const std::vector<Screen *>& getScreensByGamestate(const eGamestate gamestate);
 	static const char* gamestate_name[eGamestate::SIZE_GAMESTATE];
 
 protected:
+	SScreen*				_infos;
 	sf::RenderWindow&		_window;
 	std::vector<IEvent *>	_events;
 	eGamestate				_state;
-	sf::Font				_unicode_font;
-	sf::Font				_fancy_font;
 	unsigned int			_index;
-	std::vector<sf::Color>	_color_chart;
 	std::vector<Button *>	_buttons;
-	std::vector<unsigned int>	_text_sizes;
 };
 
-class				MenuScreen : public IScreen
+class				MenuScreen : public Screen
 {
 public:
 	MenuScreen(sf::RenderWindow& window);
@@ -98,16 +116,17 @@ protected:
 	sf::Sprite				_title;
 };
 
-class				QuizzScreen : public IScreen
+class				QuizzScreen : public Screen
 {
 public:
 	QuizzScreen(sf::RenderWindow& window);
 	virtual ~QuizzScreen();
 
 	//GETTERS
-	virtual const eKana						getSelectedKana() const;
+	virtual const KanaTable&				getSelectedKanaTable() const;
+	virtual const eKana						getSelectedKanaID() const;
 	virtual const eKanaType					getSelectedKanaType() const;
-	virtual const sf::Text&					getKanaText() const;
+	virtual const sf::Sprite&				getSelectedKanaSprite() const;
 	virtual const sf::Text&					getInputText() const;
 	virtual const sf::RectangleShape&		getInputBackground() const;
 	virtual const sf::RectangleShape&		getInputBar() const;
@@ -137,14 +156,16 @@ public:
 	void	cleanInput();
 	void	centerTextElements();
 	void	addAnswer(const bool answer);
-	void	addScoreToTotal(const unsigned long long score);
-	void	updateUIWithAnswer(const bool answer, const unsigned long long score);
+	void	addScoreToTotal(const int score);
+	void	updateUIWithAnswer(const bool answer, const int score);
 
 protected:
 	//Quizz elements
-	eKana					_random_kana;
-	eKanaType				_random_kana_type;
-	sf::Text				_kana_text;
+	std::vector<KanaTable*>	_kanas;
+	KanaTable*				_selected_kana_table;
+	eKana					_selected_kana_id;
+	eKanaType				_selected_kana_type;
+	sf::Sprite				_selected_kana_sprite;
 	std::string				_input;
 	std::vector<bool>		_answers_ct;
 
@@ -155,7 +176,7 @@ protected:
 	sf::Text					_correction_text;
 	sf::Text					_coutdown_text;
 	sf::Text					_hint_text;
-	unsigned long long			_total_score;
+	long long					_total_score;
 	std::vector<sf::Text>		_score_texts;
 	std::vector<std::string>	_score_strings;
 };

@@ -30,26 +30,33 @@ enum	eKanaType
 	SIZE_KANA_TYPE
 };
 
-class	IKana
+class	KanaTable
 {
 public:
+	KanaTable(const eKanaType type);
+	~KanaTable();
+
 	//GETTERS
-	static const wchar_t&		kana(const eKana kana, const eKanaType type);
-	static const wchar_t*		allKanaByType(const eKanaType type);
-	static const std::string*	toRomaji(const eKana kana, const eKanaType type);
-	static const std::string*	toRomajiUppercase(const std::string romaji[MAX_ROMAJI]);
+	virtual const eKanaType					getType() const;
+	virtual const std::vector<std::string>&	getRomajiByID(const eKana kana) const;
+	virtual const sf::Texture&				getTextureByID(const eKana kana) const;
 
-	static const std::string	_romaji[eKana::KANA_SIZE][MAX_ROMAJI];
+protected:
+	const eKanaType							_type;
+	std::vector<std::vector<std::string>>	_romaji;
+	std::vector<sf::Texture>				_textures;
 };
 
-class	Hiragana : public IKana
+class	Hiragana : public KanaTable
 {
 public:
-	static const wchar_t	_hiragana[eKana::KANA_SIZE];
+	Hiragana();
+	~Hiragana() { }
 };
 
-class	Katakana : public IKana
+class	Katakana : public KanaTable
 {
 public:
-	static const wchar_t	_katakana[eKana::KANA_SIZE];
+	Katakana();
+	~Katakana() {}
 };

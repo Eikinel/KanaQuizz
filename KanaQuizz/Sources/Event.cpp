@@ -33,7 +33,7 @@ QuizzEvent::QuizzEvent()
 	else
 		this->_countdown_finished = true;
 	this->_hint_given = 0;
-	this->_score = SCORE_POINT;
+	this->_penalty = SCORE_BASE;
 }
 
 QuizzEvent::~QuizzEvent()
@@ -43,7 +43,7 @@ QuizzEvent::~QuizzEvent()
 
 
 //UPDATE & DRAW METHODS
-int		WindowDefaultEvent::update(IScreen& screen, sf::Event& event)
+int		WindowDefaultEvent::update(Screen& screen, sf::Event& event)
 {
 	switch (event.type)
 	{
@@ -58,9 +58,11 @@ int		WindowDefaultEvent::update(IScreen& screen, sf::Event& event)
 		for (auto it : screen.getButtons())
 		{
 			if (!it->getHoverState() && it->isHovered(mouse_pos))
-				it->triggerEvent(eEventType::HOVER);
+				for (int i = 0; i < it->getEventsByType(eEventType::HOVER).size(); i++)
+					it->triggerEvent(eEventType::HOVER, i);
 			else if (it->getHoverState() && !it->isHovered(mouse_pos))
-				it->triggerEvent(eEventType::UNHOVER);
+				for (int i = 0; i < it->getEventsByType(eEventType::UNHOVER).size(); i++)
+					it->triggerEvent(eEventType::UNHOVER, i);
 		}
 		break;
 	}
@@ -70,14 +72,15 @@ int		WindowDefaultEvent::update(IScreen& screen, sf::Event& event)
 		{
 			int status = screen.getIndex();
 
-			std::cout << IScreen::gamestate_name[screen.getState()] << "Event : left click at position : [" <<
+			std::cout << Screen::gamestate_name[screen.getState()] << "Event : left click at position : [" <<
 			event.mouseButton.x << " ; " << event.mouseButton.y << "]." << std::endl;
 
 			for (auto it : screen.getButtons())
 			{
 				if (it->isHovered(sf::Vector2i(event.mouseButton.x, event.mouseButton.y)))
-					if ((status = it->triggerEvent(eEventType::CLICK)) != screen.getIndex())
-						return (status);
+					for (int i = 0; i < it->getEventsByType(eEventType::CLICK).size(); i++)
+						if ((status = it->triggerEvent(eEventType::CLICK, i)) != screen.getIndex())
+							return (status);
 			}
 		}
 		break;
@@ -89,7 +92,7 @@ int		WindowDefaultEvent::update(IScreen& screen, sf::Event& event)
 	return (screen.getIndex());
 }
 
-int		MenuEvent::update(IScreen& screen, sf::Event& event)
+int		MenuEvent::update(Screen& screen, sf::Event& event)
 {
 	MenuScreen*	mscreen = static_cast<MenuScreen *>(&screen);
 
@@ -112,7 +115,7 @@ int		MenuEvent::update(IScreen& screen, sf::Event& event)
 	return (screen.getIndex());
 }
 
-void		MenuEvent::draw(IScreen& screen)
+void		MenuEvent::draw(Screen& screen)
 {
 	MenuScreen*	mscreen = static_cast<MenuScreen *>(&screen);
 
@@ -122,7 +125,7 @@ void		MenuEvent::draw(IScreen& screen)
 		mscreen->draw(it->getText());
 }
 
-int		QuizzEvent::update(IScreen& screen, sf::Event& event)
+int		QuizzEvent::update(Screen& screen, sf::Event& event)
 {
 	QuizzScreen*	qscreen = static_cast<QuizzScreen *>(&screen);
 	int				status = screen.getIndex();
@@ -164,7 +167,7 @@ int		QuizzEvent::update(IScreen& screen, sf::Event& event)
 			{
 				if (!this->_has_answered)
 				{
-					const std::string* romaji = IKana::toRomaji(qscreen->getSelectedKana(), qscreen->getSelectedKanaType());
+					const std::vector<std::string> romaji = qscreen->getSelectedKanaTable().getRomajiByID(qscreen->getSelectedKanaID());
 					bool answer = false;
 
 					// Check if the input submitted is the same as the romaji
@@ -183,8 +186,9 @@ int		QuizzEvent::update(IScreen& screen, sf::Event& event)
 						}
 					}
 
-					qscreen->addScoreToTotal(answer * this->_score);
-					qscreen->updateUIWithAnswer(answer, answer * this->_score);
+					int score = (answer ? 1 : -1) * SCORE_POINT + this->_penalty;
+					qscreen->addScoreToTotal(score);
+					qscreen->updateUIWithAnswer(answer, score);
 					this->_has_answered = true;
 					this->_answer_time = this->_quizz_clock.getElapsedTime();
 					break;
@@ -198,9 +202,9 @@ int		QuizzEvent::update(IScreen& screen, sf::Event& event)
 			// Process user input only when he's still answering
 			if (!this->_has_answered)
 			{
-				// Between a and z write on the screen
-				if (event.key.code >= 97 &&
-					event.text.unicode <= 122)
+				// Between A-Za-z, write on the screen
+				if ((event.key.code >= 65 && event.text.unicode <= 90) ||
+					(event.key.code >= 97 && event.text.unicode <= 122))
 				{
 					qscreen->addCharToInput(event.text.unicode);
 					qscreen->centerTextElements();
@@ -220,7 +224,7 @@ int		QuizzEvent::update(IScreen& screen, sf::Event& event)
 			qscreen->setRandomKana();
 			qscreen->setHintText("");
 			this->_hint_given = 0;
-			this->_score = SCORE_POINT;
+			this->_penalty = SCORE_BASE;
 			this->_has_answered = false;
 		}
 	}
@@ -228,7 +232,7 @@ int		QuizzEvent::update(IScreen& screen, sf::Event& event)
 	return (status);
 }
 
-void	QuizzEvent::draw(IScreen& screen)
+void	QuizzEvent::draw(Screen& screen)
 {
 	QuizzScreen*	qscreen = static_cast<QuizzScreen *>(&screen);
 
@@ -236,7 +240,7 @@ void	QuizzEvent::draw(IScreen& screen)
 		qscreen->draw(qscreen->getCountdownText());
 	else
 	{
-		qscreen->draw(qscreen->getKanaText());
+		qscreen->draw(qscreen->getSelectedKanaSprite());
 		qscreen->draw(qscreen->getInputBackground());
 		if ((int)this->_input_bar_clock.getElapsedTime().asSeconds() % 2 == 0)
 			qscreen->draw(qscreen->getInputBar());
@@ -273,11 +277,11 @@ void	IEvent::setToggleableEntities(const std::vector<bool>& toggleable_entities)
 
 
 //METHODS
-int	IEvent::changeScreen(IScreen* screen, eGamestate gamestate)
+int	IEvent::changeScreen(Screen* screen, eGamestate gamestate)
 {
 	int	index;
 
-	if (gamestate == EXIT)
+	if (gamestate == eGamestate::EXIT)
 		return (gamestate);
 	
 	// Check if a screen with the gamestate passed as parameter already exist.
@@ -292,22 +296,24 @@ int	IEvent::changeScreen(IScreen* screen, eGamestate gamestate)
 				std::cout << "Replacing old options" << std::endl;
 				it->getEvents()[1]->setToggleableEntities(this->_toggleable_entities);
 			}
-			std::cout << "Switching screen to " << IScreen::gamestate_name[(int)gamestate] <<
+			std::cout << "Switching screen to " << Screen::gamestate_name[(int)gamestate] <<
 				" at index " << it->getIndex() << "." << std::endl << std::endl;
+			// If the player switch from quizz to menu, make a delete request
+			// It will be executed once the screen finished to switch
 			return (it->getIndex());
 		}
 	}
 	index = this->createScreen(screen, gamestate);
-	std::cout << "Switching screen to " << IScreen::gamestate_name[(int)gamestate] <<
+	std::cout << "Switching screen to " << Screen::gamestate_name[(int)gamestate] <<
 		" at index " << index << "." << std::endl << std::endl;
 	return (index);
 }
 
-int	IEvent::createScreen(IScreen* screen, eGamestate gamestate)
+int	IEvent::createScreen(Screen* screen, eGamestate gamestate)
 {
-	IScreen*	new_screen = NULL;
+	Screen*	new_screen = NULL;
 
-	std::cout << std::endl << "Creating new " << IScreen::gamestate_name[(int)gamestate] << "." << std::endl;
+	std::cout << std::endl << "Creating new " << Screen::gamestate_name[(int)gamestate] << "." << std::endl;
 
 	if (gamestate == MENU)
 		new_screen = new MenuScreen(screen->getWindow());
@@ -319,6 +325,14 @@ int	IEvent::createScreen(IScreen* screen, eGamestate gamestate)
 	new_screen->getEvents()[1]->setToggleableEntities(this->_toggleable_entities);
 	all_screens.push_back(new_screen);
 	return (new_screen->getIndex());
+}
+
+int		IEvent::addScreenToDeleteQueue(Screen* to_remove)
+{
+	std::cout << "Added " << Screen::gamestate_name[to_remove->getState()] << " screen to the delete queue" << std::endl;
+	delete_queue = to_remove;
+		
+	return (to_remove->getIndex());
 }
 
 int		IEvent::changeButtonColor(Button* button, const sf::Color color)
@@ -334,18 +348,17 @@ int		IEvent::changeButtonColor(Button* button, const sf::Color color)
 
 int	QuizzEvent::giveHint(QuizzScreen* qscreen)
 {
-	const eKana kana = qscreen->getSelectedKana();
+	const eKana kana = qscreen->getSelectedKanaID();
 	const eKanaType type = qscreen->getSelectedKanaType();
-	const std::string* romaji = IKana::toRomaji(kana, type);
+	const std::vector<std::string> romaji = qscreen->getSelectedKanaTable().getRomajiByID(qscreen->getSelectedKanaID());
 	std::stringstream hint;
 
-	this->_hint_given++;
-	if (this->_score >= SCORE_PENALTY)
-		this->_score -= SCORE_PENALTY;
-	for (int i = 0; i < this->_hint_given && i < romaji[0].length(); i++)
+	this->_hint_given < romaji[0].length() ? this->_hint_given++ : 0;
+	for (int i = 0; i < this->_hint_given; i++)
 		hint << romaji[0][i];
-	for (int i = 1; !romaji[i].empty() && this->_hint_given >= romaji[0].length() && i < MAX_ROMAJI; i++)
-		hint << " (" << romaji[i] << ")";
+	this->_penalty = SCORE_PENALTY * this->_hint_given;
+	if (this->_hint_given == romaji[0].length() && !romaji[1].empty())
+		hint << " (" << romaji[1] << ")";
 	qscreen->setHintText(hint.str());
 	std::cout << "Hint is now '" << hint.str() << "'" << std::endl;
 
